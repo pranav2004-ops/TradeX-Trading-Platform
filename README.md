@@ -1,22 +1,32 @@
-# 🚀 TradeX
+ # 🚀 TradeX
+
+![React](https://img.shields.io/badge/React-Vite-blue) ![Node.js](https://img.shields.io/badge/Node.js-Express-green) ![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-brightgreen) ![License](https://img.shields.io/badge/License-MIT-yellow)
 
 TradeX is a full-stack paper trading web application inspired by the design philosophy and trading workflows of **Zerodha Kite**. The platform allows users to practice real-time stock trading using real market data with a virtual cash balance of **₹1,00,000**, offering zero financial risk.
 
 Built with a responsive mobile navigation drawer, real-time quote context subscriptions, price alert triggers, and server-side limit order execution schedules.
 
+### Highlights
+
+- 📈 Real-time stock market data integration
+- 💰 ₹1,00,000 virtual trading balance
+- 🔔 Price alerts and notifications
+- 📊 Portfolio analytics dashboard
+- 📱 Fully responsive mobile-first UI
+
 ---
 
 ## 🔗 Live Demo
 
-- **Frontend Client**: [https://tradex-client.vercel.app](https://tradex-client.vercel.app)
-- **Backend API**: [https://tradex-server.render.com](https://tradex-server.render.com)
+🌐 **Live Application:**  
+[trade-x-trading-platform-beta.vercel.app](https://trade-x-trading-platform-beta.vercel.app)
 
 ---
 
 ## 📸 Screenshots
 
 ### Dashboard
-![Dashboard](docs/screenshots/dasboard.png)
+![Dashboard](docs/screenshots/dashboard.png)
 
 ### Watchlist
 ![Watchlist](docs/screenshots/watchlist.png)
@@ -83,8 +93,8 @@ TradeX/
 
 1. **Clone the Repository**
    ```bash
-   git clone https://github.com/pranav2004-ops/TradeX.git
-   cd TradeX
+   git clone https://github.com/pranav2004-ops/TradeX-Trading-Platform.git
+   cd TradeX-Trading-Platform
    ```
 
 2. **Install Dependencies**
@@ -131,11 +141,12 @@ FINNHUB_API_KEY=your_finnhub_api_token
 
 ---
 
-## 👥 Author
+ ## 👨‍💻 Author
 
-- **Pranav Prasoon** 
-- GitHub: https://github.com/pranav2004-ops
-- LinkedIn:(https://www.linkedin.com/in/pranavprasoon18/)
+**Pranav Prasoon**
+
+- GitHub: [pranav2004-ops](https://github.com/pranav2004-ops)
+- LinkedIn: [Pranav Prasoon](https://www.linkedin.com/in/pranavprasoon18/)
 
 ---
 
