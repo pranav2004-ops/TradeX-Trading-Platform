@@ -28,6 +28,9 @@ Built with a responsive mobile navigation drawer, real-time quote context subscr
 ### Dashboard
 ![Dashboard](docs/screenshots/dashboard.png)
 
+### Candlestick Chart
+![Candlestick Chart](docs/screenshots/candlestic_chart.png)
+
 ### Watchlist
 ![Watchlist](docs/screenshots/watchlist.png)
 
@@ -36,6 +39,9 @@ Built with a responsive mobile navigation drawer, real-time quote context subscr
 
 ### Positions
 ![Positions](docs/screenshots/positions.png)
+
+### Analytics
+![Analytics](docs/screenshots/Analytics.png)
 
 ### Profile
 ![Profile](docs/screenshots/profile.png)
@@ -134,9 +140,9 @@ FINNHUB_API_KEY=your_finnhub_api_token
 
 ## 🔮 Future Improvements
 
-- **Profile Editing & Avatars**: Allow users to update their profiles and upload profile avatars.
-- **WebSocket Live Market Updates**: Transition from REST polling to a streaming connection for instant quote feeds.
-- **Advanced Charting**: Implement intraday interactive candlestick charting libraries.
+- **Real Broker API Integration**: Support migrating virtual accounts to real live brokerage accounts (e.g., Zerodha Kite Connect, Angel One).
+- **Backtesting Module**: Allow users to run simulated strategies on historical years of candlestick data.
+- **AI Sentiment & Technical Scanner**: Generate contextual AI insights summarizing stock news sentiment and candle patterns.
 
 
 ---
