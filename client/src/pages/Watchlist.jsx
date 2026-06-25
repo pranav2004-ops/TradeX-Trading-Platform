@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/dashboard/DashboardLayout";
 import OrderModal from "../components/dashboard/OrderModal";
 import StockDetailPanel from "../components/dashboard/StockDetailPanel";
-import { buyStock, sellStock, placeLimitOrder } from "../api/tradeApi";
+import { buyStock, sellStock, placeOrder } from "../api/tradeApi";
 import { getWatchlist, removeFromWatchlist } from "../api/watchlistApi";
 import { useQuoteSubscription } from "../context/QuoteContext";
 import { useNotifications } from "../context/NotificationContext";
@@ -310,26 +310,28 @@ const Watchlist = () => {
     }
   };
 
-  const handleConfirmTrade = async ({ type, stock, quantity, price, orderType: selectedOrderType, limitPrice }) => {
+  const handleConfirmTrade = async ({ type, stock, quantity, price, orderType: selectedOrderType, limitPrice, triggerPrice }) => {
     try {
       setOrderLoading(true);
       setOrderError("");
 
       const fmtPrice = (n) => Number(n).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-      if (selectedOrderType === "LIMIT") {
-        await placeLimitOrder({
+      if (selectedOrderType !== "MARKET") {
+        await placeOrder({
           symbol: stock.symbol,
           companyName: stock.name,
           quantity,
           action: type,
+          orderType: selectedOrderType,
           limitPrice,
+          triggerPrice,
         });
 
         addNotification({
           type: "info",
-          title: "Limit Order Placed",
-          message: `Limit ${type} for ${quantity} share${quantity !== 1 ? "s" : ""} of ${stock.symbol} @ ₹${fmtPrice(limitPrice)} is pending.`,
+          title: `${selectedOrderType} Order Placed`,
+          message: `${selectedOrderType} ${type} for ${quantity} share${quantity !== 1 ? "s" : ""} of ${stock.symbol} is pending.`,
         });
       } else {
         if (type === "SELL") {

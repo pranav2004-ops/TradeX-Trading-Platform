@@ -31,6 +31,102 @@ export const QuoteProvider = ({ children }) => {
   const subscribersRef = useRef(new Map());
   const requestIdRef = useRef(0);
 
+  const wsRef = useRef(null);
+  const prevSymbolsRef = useRef([]);
+  const activeSymbolsRef = useRef([]);
+
+  // Sync activeSymbolsRef to avoid stale enclosure in websocket callbacks
+  useEffect(() => {
+    activeSymbolsRef.current = symbols;
+  }, [symbols]);
+
+  // Connect WebSocket
+  useEffect(() => {
+    const wsScheme = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
+    // If API_BASE_URL is custom, replace http protocol with ws. Otherwise fallback to local.
+    const wsHost = API_BASE_URL
+      ? API_BASE_URL.replace(/^http/, "ws")
+      : `${wsScheme}//${window.location.host}`;
+    const WS_URL = `${wsHost}/ws`;
+
+    let socket = null;
+    let connectTimeout = null;
+
+    const connect = () => {
+      if (socket) return;
+      console.info("[WS] Connecting to:", WS_URL);
+      socket = new WebSocket(WS_URL);
+
+      socket.onopen = () => {
+        console.info("[WS] Live price ticks socket active.");
+        if (activeSymbolsRef.current.length > 0) {
+          socket.send(JSON.stringify({ action: "subscribe", symbols: activeSymbolsRef.current }));
+        }
+      };
+
+      socket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === "price_update" && data.symbol) {
+            setQuoteMap((current) => ({
+              ...current,
+              [data.symbol.toUpperCase()]: {
+                symbol: data.symbol,
+                currentPrice: data.currentPrice,
+                change: data.change,
+                changePercent: data.changePercent,
+                previousClose: data.previousClose,
+              },
+            }));
+            setLastUpdatedAt(Date.now());
+          }
+        } catch (err) {
+          console.error("[WS] Error parsing tick update:", err);
+        }
+      };
+
+      socket.onclose = () => {
+        console.warn("[WS] Connection closed. Reconnecting in 5s...");
+        socket = null;
+        wsRef.current = null;
+        connectTimeout = setTimeout(connect, 5000);
+      };
+
+      socket.onerror = (err) => {
+        console.error("[WS] Connection error:", err);
+      };
+
+      wsRef.current = socket;
+    };
+
+    connect();
+
+    return () => {
+      if (connectTimeout) clearTimeout(connectTimeout);
+      if (socket) {
+        socket.close();
+      }
+    };
+  }, []);
+
+  // Sync subscriptions on symbol changes
+  useEffect(() => {
+    const prev = prevSymbolsRef.current;
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      const added = symbols.filter((s) => !prev.includes(s));
+      const removed = prev.filter((s) => !symbols.includes(s));
+
+      if (added.length > 0) {
+        wsRef.current.send(JSON.stringify({ action: "subscribe", symbols: added }));
+      }
+      if (removed.length > 0) {
+        wsRef.current.send(JSON.stringify({ action: "unsubscribe", symbols: removed }));
+      }
+    }
+    prevSymbolsRef.current = symbols;
+  }, [symbols]);
+
   const rebuildSymbols = useCallback(() => {
     const nextSymbols = normalizeSymbols(
       Array.from(subscribersRef.current.values()).flat()
@@ -73,6 +169,11 @@ export const QuoteProvider = ({ children }) => {
       setLoading(false);
       setError("");
       setLastUpdatedAt(null);
+      return [];
+    }
+
+    // Skip HTTP polling fetch if WebSocket is alive and active
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       return [];
     }
 

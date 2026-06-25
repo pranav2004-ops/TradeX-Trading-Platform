@@ -1,5 +1,6 @@
 import PortfolioSnapshot from "../models/PortfolioSnapshot.js";
 import { getSummaryByUser } from "../services/tradingEngineService.js";
+import { calculateAdvancedAnalytics } from "../services/analyticsService.js";
 import asyncHandler from "../middleware/asyncHandler.js";
 
 const normalizeSnapshot = (snapshot) => ({
@@ -13,9 +14,6 @@ const normalizeSnapshot = (snapshot) => ({
 /**
  * @route  GET /api/analytics/performance
  * @access Private
- *
- * asyncHandler forwards any thrown error or rejected promise to the global
- * error handler — no manual try/catch or inline 500 responses needed.
  */
 export const getPortfolioPerformance = asyncHandler(async (req, res) => {
   let snapshots = await PortfolioSnapshot.find({ user: req.user.id })
@@ -37,5 +35,18 @@ export const getPortfolioPerformance = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     data: snapshots.map(normalizeSnapshot),
+  });
+});
+
+/**
+ * @route  GET /api/analytics/advanced
+ * @access Private
+ */
+export const getAdvancedAnalyticsController = asyncHandler(async (req, res) => {
+  const data = await calculateAdvancedAnalytics(req.user.id);
+
+  res.status(200).json({
+    success: true,
+    data,
   });
 });

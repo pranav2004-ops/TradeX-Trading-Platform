@@ -14,11 +14,14 @@ import {
   Check,
   ExternalLink,
   Menu,
+  Sun,
+  Moon,
 } from "lucide-react";
 
 import StockSearchDropdown from "./StockSearchDropdown";
 import { searchStocks } from "../../api/stockApi";
 import { useNotifications } from "../../context/NotificationContext";
+import { useTheme } from "../../context/ThemeContext";
 import useMarketStatus, { MARKET_STATES } from "../../hooks/useMarketStatus";
 
 const getGreeting = () => {
@@ -211,8 +214,16 @@ const ProfileMenu = ({ user, initials, onClose }) => {
     >
       {/* User identity header */}
       <div className="flex items-center gap-3 border-b border-[#1e2530] px-4 py-3">
-        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#2f6fed]/20 border border-[#2f6fed]/30 text-[13px] font-semibold text-[#2f6fed]">
-          {initials}
+        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#2f6fed]/20 border border-[#2f6fed]/30 text-[13px] font-semibold text-[#2f6fed] overflow-hidden">
+          {user.profilePhoto ? (
+            <img
+              src={user.profilePhoto}
+              alt={user.name}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            initials
+          )}
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-[#f5f7fa]">
@@ -275,9 +286,20 @@ const TopNavbar = ({ onStockSelect, onMenuClick }) => {
   const bellRef = useRef(null);
   const searchRef = useRef(null);
   const skipSearchRef = useRef(false);
-  const user = getUserFromStorage();
+
+  const [user, setUser] = useState(getUserFromStorage());
   const initials = getInitials(user.name);
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setUser(getUserFromStorage());
+    };
+    window.addEventListener("user-profile-updated", handleUpdate);
+    return () => window.removeEventListener("user-profile-updated", handleUpdate);
+  }, []);
+
   const { unreadCount } = useNotifications();
+  const { theme, toggleTheme } = useTheme();
   const { state: marketState, isOpen: isMarketOpen } = useMarketStatus();
 
   // Close profile dropdown on outside click
@@ -451,6 +473,16 @@ const TopNavbar = ({ onStockSelect, onMenuClick }) => {
           <span>{marketState}</span>
         </div>
 
+        {/* Theme Toggle */}
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-[#1e2530] text-[#8a93a3] hover:text-white transition-colors"
+          title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
+        >
+          {theme === "dark" ? <Sun size={15} strokeWidth={1.8} /> : <Moon size={15} strokeWidth={1.8} />}
+        </button>
+
         {/* ── Bell / notifications ── */}
         <div className="relative" ref={bellRef}>
           <button
@@ -486,8 +518,16 @@ const TopNavbar = ({ onStockSelect, onMenuClick }) => {
             onClick={handleProfileClick}
             className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-md hover:bg-[#1e2530] transition-colors"
           >
-            <div className="w-7 h-7 rounded-full bg-[#2f6fed]/20 border border-[#2f6fed]/30 flex items-center justify-center text-[11px] font-semibold text-[#2f6fed]">
-              {initials}
+            <div className="w-7 h-7 rounded-full bg-[#2f6fed]/20 border border-[#2f6fed]/30 flex items-center justify-center text-[11px] font-semibold text-[#2f6fed] overflow-hidden">
+              {user.profilePhoto ? (
+                <img
+                  src={user.profilePhoto}
+                  alt={user.name}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                initials
+              )}
             </div>
             <ChevronDown
               size={12}

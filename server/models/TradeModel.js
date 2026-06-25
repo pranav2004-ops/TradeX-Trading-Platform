@@ -73,7 +73,7 @@ const tradeSchema = new mongoose.Schema(
      */
     orderType: {
       type: String,
-      enum: ["MARKET", "LIMIT"],
+      enum: ["MARKET", "LIMIT", "SL", "SL-M", "GTT"],
       default: "MARKET",
     },
 
@@ -86,6 +86,21 @@ const tradeSchema = new mongoose.Schema(
       type: String,
       enum: ["PENDING", "EXECUTED", "CANCELLED", "REJECTED"],
       default: "EXECUTED",
+    },
+
+    // ── Trigger fields for SL, SL-M, GTT ────────────────────────────────────
+    triggerPrice: {
+      type: Number,
+      min: 0,
+    },
+
+    isTriggered: {
+      type: Boolean,
+      default: false,
+    },
+
+    triggeredAt: {
+      type: Date,
     },
 
     // ── Price fields ────────────────────────────────────────────────────────
@@ -157,6 +172,10 @@ const tradeSchema = new mongoose.Schema(
     rejectionReason: {
       type: String,
       trim: true,
+    },
+
+    realizedPnL: {
+      type: Number,
     },
 
     // ── Audit trail ─────────────────────────────────────────────────────────

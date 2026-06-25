@@ -2,18 +2,23 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import DashboardLayout from "../components/dashboard/DashboardLayout";
 import PortfolioPerformanceCard from "../components/analytics/PortfolioPerformanceCard";
 import PnLAnalytics from "../components/analytics/PnLAnalytics";
+import AdvancedMetrics from "../components/analytics/AdvancedMetrics";
 import SectorAllocation from "../components/analytics/SectorAllocation";
 import PortfolioInsights from "../components/analytics/PortfolioInsights";
 import { getHoldings, getTradeSummary } from "../api/tradeApi";
+import { getAdvancedAnalytics } from "../api/analyticsApi";
 import { useQuoteSubscription } from "../context/QuoteContext";
 
 const Analytics = () => {
   const [holdings, setHoldings] = useState([]);
   const [summary, setSummary] = useState(null);
+  const [advancedData, setAdvancedData] = useState(null);
   const [holdingsLoading, setHoldingsLoading] = useState(true);
   const [summaryLoading, setSummaryLoading] = useState(true);
+  const [advancedLoading, setAdvancedLoading] = useState(true);
   const [holdingsError, setHoldingsError] = useState("");
   const [summaryError, setSummaryError] = useState("");
+  const [advancedError, setAdvancedError] = useState("");
 
   const symbols = useMemo(
     () => holdings.map((h) => h.symbol),
@@ -52,15 +57,29 @@ const Analytics = () => {
     }
   }, []);
 
+  const loadAdvancedData = useCallback(async () => {
+    try {
+      setAdvancedLoading(true);
+      setAdvancedError("");
+      const data = await getAdvancedAnalytics();
+      setAdvancedData(data);
+    } catch (err) {
+      setAdvancedError(err.message || "Failed to load advanced portfolio analytics.");
+    } finally {
+      setAdvancedLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     const timer = window.setTimeout(() => {
       loadHoldings();
       loadSummary();
+      loadAdvancedData();
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [loadHoldings, loadSummary]);
+  }, [loadHoldings, loadSummary, loadAdvancedData]);
 
-  const dataError = holdingsError || quotesError || summaryError;
+  const dataError = holdingsError || quotesError || summaryError || advancedError;
 
   return (
     <DashboardLayout>
@@ -106,6 +125,23 @@ const Analytics = () => {
           quoteMap={quoteMap}
           quotesLoading={holdingsLoading || quotesLoading}
         />
+
+        {/* Advanced risk intelligence, SPY benchmark comparison, and asset heatmap */}
+        {!holdingsLoading && holdings.length > 0 && (
+          <>
+            {advancedLoading ? (
+              <div className="rounded-lg border border-[#1e2530] bg-[#11161f] p-8 text-center text-xs text-[#8a93a3]">
+                Computing advanced portfolio risk statistics and index benchmark metrics...
+              </div>
+            ) : advancedError ? (
+              <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-8 text-center text-xs text-red-400">
+                Failed to load advanced risk and benchmark calculations.
+              </div>
+            ) : advancedData ? (
+              <AdvancedMetrics data={advancedData} />
+            ) : null}
+          </>
+        )}
 
         {/* Two-column: Sector Allocation + Portfolio Insights */}
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">

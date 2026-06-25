@@ -30,3 +30,21 @@ export const getPortfolioPerformance = async () => {
 
   return result.data;
 };
+
+export const getAdvancedAnalytics = async () => {
+  const response = await fetch(`${BASE_URL}/advanced`, {
+    headers: getAuthHeaders(),
+  });
+
+  const result = await response.json();
+
+  if (!response.ok || !result.success) {
+    if (response.status === 401) {
+      localStorage.removeItem("token");
+      window.location.href = "/login";
+    }
+    throw new Error(result.message || "Failed to load advanced portfolio analytics");
+  }
+
+  return result.data;
+};

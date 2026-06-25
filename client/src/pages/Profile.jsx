@@ -107,9 +107,17 @@ const StatCard = ({ icon: Icon, label, value, iconColor = "text-[#2f6fed]" }) =>
    Profile page
 ───────────────────────────────────────────── */
 const Profile = () => {
-  const user = getUserFromStorage();
+  const [user, setUser] = useState(getUserFromStorage());
   const jwt = decodeJwt();
   const initials = getInitials(user?.name);
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setUser(getUserFromStorage());
+    };
+    window.addEventListener("user-profile-updated", handleUpdate);
+    return () => window.removeEventListener("user-profile-updated", handleUpdate);
+  }, []);
 
   const [summary, setSummary] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(true);
@@ -160,8 +168,16 @@ const Profile = () => {
         {/* Avatar + identity banner */}
         <section className="flex flex-col items-center gap-4 rounded-lg border border-[#1e2530] bg-[#11161f] px-5 py-8 sm:flex-row sm:items-start">
           {/* Large avatar */}
-          <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full bg-[#2f6fed]/20 border-2 border-[#2f6fed]/40 text-2xl font-bold text-[#2f6fed]">
-            {initials}
+          <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full bg-[#2f6fed]/20 border-2 border-[#2f6fed]/40 text-2xl font-bold text-[#2f6fed] overflow-hidden">
+            {user?.profilePhoto ? (
+              <img
+                src={user.profilePhoto}
+                alt={user?.name}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              initials
+            )}
           </div>
 
           <div className="flex flex-col gap-1 text-center sm:text-left">

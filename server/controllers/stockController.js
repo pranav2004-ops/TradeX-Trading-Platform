@@ -4,6 +4,7 @@ import {
   getBatchStockQuotes,
   getStockOverview,
   getSparklineData,
+  getStockCandles,
 } from "../services/stockService.js";
 import asyncHandler from "../middleware/asyncHandler.js";
 
@@ -122,6 +123,40 @@ export const getBatchSectorsController = asyncHandler(async (req, res) => {
       }
     })
   );
+
+  res.status(200).json({
+    success: true,
+    data,
+  });
+});
+
+// @route GET /api/stocks/candles/:symbol?timeframe=...
+export const getStockCandlesController = asyncHandler(async (req, res) => {
+  const { symbol } = req.params;
+  const timeframe = String(req.query.timeframe || "1M").trim().toUpperCase();
+
+  const now = Math.floor(Date.now() / 1000);
+  let from = now - 30 * 24 * 60 * 60; // Default 1M
+  let resolution = "D";
+
+  if (timeframe === "1D") {
+    resolution = "15";
+    from = now - 1 * 24 * 60 * 60;
+  } else if (timeframe === "1W") {
+    resolution = "60";
+    from = now - 7 * 24 * 60 * 60;
+  } else if (timeframe === "1M") {
+    resolution = "D";
+    from = now - 30 * 24 * 60 * 60;
+  } else if (timeframe === "3M") {
+    resolution = "D";
+    from = now - 90 * 24 * 60 * 60;
+  } else if (timeframe === "1Y") {
+    resolution = "D";
+    from = now - 365 * 24 * 60 * 60;
+  }
+
+  const data = await getStockCandles(symbol, resolution, from, now);
 
   res.status(200).json({
     success: true,

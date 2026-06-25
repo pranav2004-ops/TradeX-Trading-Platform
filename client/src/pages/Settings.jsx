@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   User,
@@ -9,18 +9,20 @@ import {
   LogOut,
   Lock,
   CheckCircle,
-  
   RotateCcw,
   Eye,
   EyeOff,
+  Camera,
+  Upload,
 } from "lucide-react";
 import DashboardLayout from "../components/dashboard/DashboardLayout";
 import useSettings from "../hooks/useSettings";
-import { changePassword } from "../api/accountApi";
+import { changePassword, updateProfile } from "../api/accountApi";
 import { useNotifications } from "../context/NotificationContext";
+import { useTheme } from "../context/ThemeContext";
 
 /* ─────────────────────────────────────────────
-   Helpers
+   Helpers & Presets
 ───────────────────────────────────────────── */
 const getUserFromStorage = () => {
   try {
@@ -30,6 +32,14 @@ const getUserFromStorage = () => {
     return null;
   }
 };
+
+const getInitials = (name = "") =>
+  name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 
 const getMemberSince = () => {
   try {
@@ -71,6 +81,25 @@ const formatExpiry = (date) => {
 };
 
 const isTokenValid = (date) => date && date > new Date();
+
+const PRESET_AVATARS = [
+  {
+    name: "Bullish",
+    data: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%2310b98120'/><text x='50' y='62' font-size='42' text-anchor='middle'>🐂</text></svg>",
+  },
+  {
+    name: "Bearish",
+    data: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%23ef444420'/><text x='50' y='62' font-size='42' text-anchor='middle'>🐻</text></svg>",
+  },
+  {
+    name: "Chart Analyst",
+    data: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%232f6fed20'/><text x='50' y='62' font-size='42' text-anchor='middle'>📈</text></svg>",
+  },
+  {
+    name: "Golden Coin",
+    data: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%23f59e0b20'/><text x='50' y='62' font-size='42' text-anchor='middle'>🪙</text></svg>",
+  },
+];
 
 /* ─────────────────────────────────────────────
    Reusable layout primitives
@@ -162,8 +191,6 @@ const SelectRow = ({ label, note, value, options, onChange }) => (
   </div>
 );
 
- 
-
 const ThemeOption = ({ label, isActive, onClick, disabled }) => (
   <button
     type="button"
@@ -177,15 +204,13 @@ const ThemeOption = ({ label, isActive, onClick, disabled }) => (
   >
     <div
       className={`h-8 w-full rounded-md ${
-        label === "Dark" ? "bg-[#0a0e14]" : "bg-slate-100"
+        label === "Dark" ? "bg-[#0a0e14]" : "bg-slate-200"
       }`}
     />
     <span className="text-xs font-medium text-[#f5f7fa]">{label}</span>
-    {isActive ? (
+    {isActive && (
       <CheckCircle size={12} className="text-[#2f6fed]" strokeWidth={2} />
-    ) : disabled ? (
-      <span className="text-[10px] text-[#4f5867]">Soon</span>
-    ) : null}
+    )}
   </button>
 );
 
@@ -227,7 +252,7 @@ const PasswordInput = ({ id, label, value, onChange, placeholder, disabled }) =>
 };
 
 /* ─────────────────────────────────────────────
-   Change Password form (inline in Security card)
+   Change Password form
 ───────────────────────────────────────────── */
 const ChangePasswordForm = ({ onSuccess }) => {
   const [form, setForm] = useState({
@@ -238,7 +263,6 @@ const ChangePasswordForm = ({ onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Client-side validation (mirrors server rules)
   const validate = () => {
     if (!form.currentPassword || !form.newPassword || !form.confirmPassword) {
       return "All three fields are required.";
@@ -273,7 +297,6 @@ const ChangePasswordForm = ({ onSuccess }) => {
 
     try {
       await changePassword(form);
-      // Clear the form before triggering logout so no secrets stay in state
       setForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
       onSuccess();
     } catch (err) {
@@ -323,7 +346,7 @@ const ChangePasswordForm = ({ onSuccess }) => {
           </div>
         ) : null}
 
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mt-2">
           <p className="text-xs text-[#4f5867]">
             You will be signed out after a successful change.
           </p>
@@ -347,9 +370,76 @@ const Settings = () => {
   const navigate = useNavigate();
   const { settings, updateSetting, resetSettings } = useSettings();
   const { addNotification } = useNotifications();
-  const user = getUserFromStorage();
+  const { theme, toggleTheme } = useTheme();
+  
+  const [user, setUser] = useState(getUserFromStorage());
   const tokenExpiry = getTokenExpiry();
   const tokenValid = isTokenValid(tokenExpiry);
+
+  // Profile Edit states
+  const [profileName, setProfileName] = useState(user?.name || "");
+  const [profilePhoto, setProfilePhoto] = useState(user?.profilePhoto || "");
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState("");
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      const u = getUserFromStorage();
+      setUser(u);
+      setProfileName(u?.name || "");
+      setProfilePhoto(u?.profilePhoto || "");
+    };
+    window.addEventListener("user-profile-updated", handleUpdate);
+    return () => window.removeEventListener("user-profile-updated", handleUpdate);
+  }, []);
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 150 * 1024) {
+      setProfileError("Avatar image must be less than 150KB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setProfilePhoto(reader.result);
+      setProfileError("");
+    };
+    reader.onerror = () => {
+      setProfileError("Failed to read image file.");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    if (profileLoading || !profileName.trim()) return;
+
+    setProfileLoading(true);
+    setProfileError("");
+
+    try {
+      const updatedUser = await updateProfile({
+        name: profileName.trim(),
+        profilePhoto: profilePhoto,
+      });
+
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      window.dispatchEvent(new Event("user-profile-updated"));
+
+      addNotification({
+        type: "success",
+        title: "Profile Updated",
+        message: "Your name and profile avatar were updated successfully.",
+      });
+    } catch (err) {
+      setProfileError(err.message || "Failed to update profile details.");
+    } finally {
+      setProfileLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     addNotification({
@@ -368,8 +458,6 @@ const Settings = () => {
       title: "Password Changed",
       message: "Your password was successfully updated.",
     });
-    // Clear session and redirect — old JWT is still technically valid
-    // (stateless), so we must force the user to re-authenticate.
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     navigate("/login", {
@@ -388,6 +476,8 @@ const Settings = () => {
     }
   };
 
+  const initials = getInitials(user?.name);
+
   return (
     <DashboardLayout>
       <div className="flex max-w-[900px] flex-col gap-5">
@@ -404,20 +494,100 @@ const Settings = () => {
           </p>
         </header>
 
-        {/* ── Profile ─────────────────────────────── */}
-        <SectionCard icon={User} title="Profile">
-          <FieldRow label="Full Name" value={user?.name ?? "—"} />
-          <FieldRow label="Email Address" value={user?.email ?? "—"} />
-          <FieldRow
-            label="Account Type"
-            value="Paper Trading"
-            note="Simulated trading with virtual capital"
-          />
-          <FieldRow
-            label="Member Since"
-            value={getMemberSince()}
-            note="Derived from your first JWT"
-          />
+        {/* ── Profile settings ──────────────────────── */}
+        <SectionCard icon={User} title="Profile Settings">
+          <form onSubmit={handleSaveProfile} className="flex flex-col gap-5">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+              
+              {/* Avatar Selector */}
+              <div className="relative flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full border-2 border-[#2f6fed]/30 bg-[#0d1117]">
+                {profilePhoto ? (
+                  <img
+                    src={profilePhoto}
+                    alt={profileName}
+                    className="h-full w-full rounded-full object-cover"
+                  />
+                ) : (
+                  <span className="text-xl font-bold text-[#2f6fed]">{initials}</span>
+                )}
+                
+                {/* Upload Button overlay */}
+                <label className="absolute -bottom-1 -right-1 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-[#2f6fed] text-white shadow-lg transition hover:bg-[#1a56db]">
+                  <Upload size={10} />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              {/* Name & details */}
+              <div className="flex-1 flex flex-col gap-1.5">
+                <label htmlFor="fullname" className="text-xs font-semibold text-[#8a93a3] uppercase tracking-wider">
+                  Full Name
+                </label>
+                <input
+                  id="fullname"
+                  type="text"
+                  value={profileName}
+                  onChange={(e) => setProfileName(e.target.value)}
+                  className="h-10 w-full max-w-sm rounded-md border border-[#1e2530] bg-[#0d1117] px-3 text-sm text-[#f5f7fa] outline-none transition focus:border-[#2f6fed]/50 focus:ring-1 focus:ring-[#2f6fed]/20"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Vector preset Avatars selector */}
+            <div className="border-t border-[#1e2530] pt-4">
+              <p className="mb-2.5 text-xs font-semibold text-[#8a93a3] uppercase tracking-wider">
+                Or Select Vector Avatar
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {PRESET_AVATARS.map((avatar) => (
+                  <button
+                    key={avatar.name}
+                    type="button"
+                    onClick={() => setProfilePhoto(avatar.data)}
+                    className={`h-12 w-12 rounded-full border transition hover:scale-105 ${
+                      profilePhoto === avatar.data
+                        ? "border-[#2f6fed] ring-2 ring-[#2f6fed]/25"
+                        : "border-[#1e2530]"
+                    }`}
+                  >
+                    <img src={avatar.data} alt={avatar.name} className="h-full w-full" />
+                  </button>
+                ))}
+                
+                {profilePhoto && (
+                  <button
+                    type="button"
+                    onClick={() => setProfilePhoto("")}
+                    className="rounded-lg border border-[#1e2530] bg-[#0d1117] px-3 text-xs font-semibold text-[#8a93a3] hover:text-[#f5f7fa]"
+                  >
+                    Clear Avatar
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {profileError && (
+              <div className="rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-400">
+                {profileError}
+              </div>
+            )}
+
+            <div className="flex justify-end border-t border-[#1e2530] pt-4">
+              <button
+                type="submit"
+                disabled={profileLoading || !profileName.trim()}
+                className="flex h-9 items-center gap-2 rounded-md bg-[#2f6fed] px-5 text-sm font-semibold text-white transition hover:bg-[#1a56db] disabled:opacity-50"
+              >
+                {profileLoading ? "Saving..." : "Save Profile"}
+              </button>
+            </div>
+          </form>
         </SectionCard>
 
         {/* ── Trading preferences ──────────────────── */}
@@ -454,6 +624,46 @@ const Settings = () => {
           />
         </SectionCard>
 
+        {/* ── Chart preferences ──────────────────── */}
+        <SectionCard icon={TrendingUp} title="Chart Settings">
+          <SelectRow
+            label="Default Timeframe"
+            note="Default timeframe when opening stock candlestick charts"
+            value={settings.defaultTimeframe}
+            options={[
+              { value: "1D", label: "1D (15 Min)" },
+              { value: "1W", label: "1W (60 Min)" },
+              { value: "1M", label: "1M (Daily)" },
+              { value: "3M", label: "3M (Daily)" },
+              { value: "1Y", label: "1Y (Daily)" },
+            ]}
+            onChange={(v) => updateSetting("defaultTimeframe", v)}
+          />
+          <SelectRow
+            label="Default Overlay Indicator"
+            note="Pre-draws a technical overlay on the chart"
+            value={settings.defaultOverlayIndicator}
+            options={[
+              { value: "NONE", label: "None" },
+              { value: "SMA", label: "Simple Moving Average (SMA 20)" },
+              { value: "EMA", label: "Exponential Moving Average (EMA 20)" },
+              { value: "BB", label: "Bollinger Bands" },
+            ]}
+            onChange={(v) => updateSetting("defaultOverlayIndicator", v)}
+          />
+          <SelectRow
+            label="Default Oscillator"
+            note="Default oscillator sub-pane chart below price"
+            value={settings.defaultOscillator}
+            options={[
+              { value: "NONE", label: "None" },
+              { value: "RSI", label: "Relative Strength Index (RSI)" },
+              { value: "MACD", label: "Moving Average Convergence Divergence" },
+            ]}
+            onChange={(v) => updateSetting("defaultOscillator", v)}
+          />
+        </SectionCard>
+
         {/* ── Appearance ──────────────────────────── */}
         <SectionCard icon={Palette} title="Appearance">
           <div className="border-b border-[#1e2530] pb-3">
@@ -461,8 +671,19 @@ const Settings = () => {
             <div className="flex gap-3">
               <ThemeOption
                 label="Dark"
-                isActive={settings.theme === "dark"}
-                onClick={() => updateSetting("theme", "dark")}
+                isActive={theme === "dark"}
+                onClick={() => {
+                  if (theme !== "dark") toggleTheme();
+                  updateSetting("theme", "dark");
+                }}
+              />
+              <ThemeOption
+                label="Light"
+                isActive={theme === "light"}
+                onClick={() => {
+                  if (theme !== "light") toggleTheme();
+                  updateSetting("theme", "light");
+                }}
               />
             </div>
           </div>
@@ -502,10 +723,8 @@ const Settings = () => {
             </span>
           </div>
 
-          {/* Change Password — live form */}
           <ChangePasswordForm onSuccess={handlePasswordChanged} />
 
-          {/* Logout */}
           <div className="pt-3">
             <button
               type="button"
@@ -527,9 +746,7 @@ const Settings = () => {
           />
           <FieldRow
             label="API Base URL"
-            value={
-              import.meta.env.VITE_API_BASE_URL || "(relative)"
-            }
+            value={import.meta.env.VITE_API_BASE_URL || "(relative)"}
           />
           <FieldRow
             label="Quote Refresh Interval"
@@ -543,7 +760,7 @@ const Settings = () => {
           />
         </SectionCard>
 
-        {/* ── Danger zone ─────────────────────────── */}
+        {/* danger zone */}
         <section className="rounded-lg border border-[#2a1a1a] bg-[#11161f] px-5 py-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -566,7 +783,6 @@ const Settings = () => {
           </div>
         </section>
 
-        {/* persistence note */}
         <p className="pb-2 text-center text-xs text-[#4f5867]">
           <Lock size={10} className="mr-1 inline" strokeWidth={1.8} />
           Preferences are saved locally to this browser only.
@@ -575,5 +791,4 @@ const Settings = () => {
     </DashboardLayout>
   );
 };
-
 export default Settings;

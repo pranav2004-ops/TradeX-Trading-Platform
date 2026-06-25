@@ -34,3 +34,23 @@ export const changePassword = async ({
 
   return result;
 };
+
+export const updateProfile = async ({ name, profilePhoto }) => {
+  const response = await fetch(`${BASE_URL}/profile`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ name, profilePhoto }),
+  });
+
+  const result = await response.json();
+
+  if (!response.ok || !result.success) {
+    if (response.status === 401) {
+      localStorage.removeItem("token");
+      window.location.href = "/login";
+    }
+    throw new Error(result.message || "Failed to update profile.");
+  }
+
+  return result.user;
+};

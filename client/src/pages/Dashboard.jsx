@@ -16,7 +16,7 @@ import { useNotifications } from "../context/NotificationContext";
 import {
   buyStock,
   sellStock,
-  placeLimitOrder,
+  placeOrder,
   getHoldings,
   getTradeHistory,
   getTradeSummary,
@@ -76,27 +76,31 @@ const Dashboard = () => {
     refreshQuotes,
   } = useQuoteSubscription("dashboard-holdings", holdingSymbols);
 
-  const { liveHoldingsValue, unrealizedPnL, pnlAvailable } = useMemo(() => {
+  const { liveHoldingsValue, unrealizedPnL, dayPnL, pnlAvailable } = useMemo(() => {
     let liveVal = 0;
     let pnlSum = 0;
+    let dayPnLSum = 0;
     let anyPrice = false;
 
     for (const h of holdings) {
-      const price = Number(
-        holdingQuoteMap[String(h.symbol).toUpperCase()]?.currentPrice
-      );
+      const quote = holdingQuoteMap[String(h.symbol).toUpperCase()];
+      const price = Number(quote?.currentPrice);
+      const prevClose = Number(quote?.previousClose);
 
       if (Number.isFinite(price) && price > 0) {
         const currentVal = price * h.quantity;
         liveVal += currentVal;
         pnlSum += currentVal - h.investedAmount;
         anyPrice = true;
+
+        const fallbackPrevClose = Number.isFinite(prevClose) && prevClose > 0 ? prevClose : price;
+        dayPnLSum += (price - fallbackPrevClose) * h.quantity;
       } else {
         liveVal += h.investedAmount;
       }
     }
 
-    return { liveHoldingsValue: liveVal, unrealizedPnL: pnlSum, pnlAvailable: anyPrice };
+    return { liveHoldingsValue: liveVal, unrealizedPnL: pnlSum, dayPnL: dayPnLSum, pnlAvailable: anyPrice };
   }, [holdings, holdingQuoteMap]);
   
   const selectedSymbol = selectedStock?.["1. symbol"] || "";
@@ -269,26 +273,28 @@ const Dashboard = () => {
     setOrderError("");
   };
 
-  const handleConfirmTrade = async ({ type, stock, quantity, price, orderType: selectedOrderType, limitPrice }) => {
+  const handleConfirmTrade = async ({ type, stock, quantity, price, orderType: selectedOrderType, limitPrice, triggerPrice }) => {
     try {
       setOrderLoading(true);
       setOrderError("");
 
       const fmtPrice = (n) => Number(n).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-      if (selectedOrderType === "LIMIT") {
-        await placeLimitOrder({
+      if (selectedOrderType !== "MARKET") {
+        await placeOrder({
           symbol: stock.symbol,
           companyName: stock.name,
           quantity,
           action: type,
+          orderType: selectedOrderType,
           limitPrice,
+          triggerPrice,
         });
 
         addNotification({
           type: "info",
-          title: "Limit Order Placed",
-          message: `Limit ${type} for ${quantity} share${quantity !== 1 ? "s" : ""} of ${stock.symbol} @ ₹${fmtPrice(limitPrice)} is pending.`,
+          title: `${selectedOrderType} Order Placed`,
+          message: `${selectedOrderType} ${type} for ${quantity} share${quantity !== 1 ? "s" : ""} of ${stock.symbol} is pending.`,
         });
       } else {
         const trade = type === "SELL"
@@ -372,6 +378,7 @@ const Dashboard = () => {
           error={summaryError}
           liveHoldingsValue={liveHoldingsValue}
           unrealizedPnL={unrealizedPnL}
+          dayPnL={dayPnL}
           pnlAvailable={pnlAvailable}
           quotesLoading={holdingQuotesLoading}
         />

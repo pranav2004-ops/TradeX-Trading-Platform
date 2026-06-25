@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { TrendingUp, TrendingDown, Bell, X } from "lucide-react";
 import SetAlertModal from "../alerts/SetAlertModal";
+import StockChart from "./StockChart";
 
 const StockDetailPanel = ({
   stock,
@@ -93,6 +94,11 @@ const StockDetailPanel = ({
               {changeValue} ({changePercent}%)
             </span>
           </div>
+        </div>
+
+        {/* Interactive Candlestick Chart */}
+        <div className="mb-6 p-4 rounded-lg bg-[#0d1117] border border-[#1e2530]">
+          <StockChart symbol={symbol} />
         </div>
 
         <div className="flex flex-col gap-2">

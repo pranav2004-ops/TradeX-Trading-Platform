@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import DashboardLayout from "../components/dashboard/DashboardLayout";
 import OrderModal from "../components/dashboard/OrderModal";
-import { buyStock, getHoldings, placeLimitOrder, sellStock } from "../api/tradeApi";
+import { buyStock, getHoldings, placeOrder, sellStock } from "../api/tradeApi";
 import { useQuoteSubscription } from "../context/QuoteContext";
+import { Download, FileSpreadsheet } from "lucide-react";
+import { exportToCSV, exportToPDF } from "../utils/exportUtils";
 
 const fmt = (n) =>
   n.toLocaleString("en-IN", {
@@ -92,18 +94,20 @@ const Positions = () => {
     setOrderError("");
   };
 
-  const handleConfirmTrade = async ({ type, stock, quantity, price, orderType: selectedOrderType, limitPrice }) => {
+  const handleConfirmTrade = async ({ type, stock, quantity, price, orderType: selectedOrderType, limitPrice, triggerPrice }) => {
     try {
       setOrderLoading(true);
       setOrderError("");
 
-      if (selectedOrderType === "LIMIT") {
-        await placeLimitOrder({
+      if (selectedOrderType !== "MARKET") {
+        await placeOrder({
           symbol: stock.symbol,
           companyName: stock.name,
           quantity,
           action: type,
+          orderType: selectedOrderType,
           limitPrice,
+          triggerPrice,
         });
       } else {
         if (type === "SELL") {
@@ -123,6 +127,50 @@ const Positions = () => {
     }
   };
 
+  const handleExportCSV = () => {
+    const csvHeaders = ["Symbol", "Company", "Quantity", "Average Price", "Invested Amount", "Current Price", "Unrealized P&L", "P&L %"];
+    const exportData = positions.map(p => {
+      const hasPrice = Number.isFinite(p.currentPrice);
+      const marketValue = hasPrice ? p.currentPrice * p.quantity : null;
+      const pnl = hasPrice ? marketValue - p.investedAmount : null;
+      const pnlPercent = hasPrice && p.investedAmount > 0 ? (pnl / p.investedAmount) * 100 : null;
+
+      return {
+        "Symbol": p.symbol,
+        "Company": p.companyName,
+        "Quantity": p.quantity,
+        "Average Price": `INR ${p.averagePrice.toFixed(2)}`,
+        "Invested Amount": `INR ${p.investedAmount.toFixed(2)}`,
+        "Current Price": hasPrice ? `INR ${p.currentPrice.toFixed(2)}` : "--",
+        "Unrealized P&L": hasPrice ? `${pnl >= 0 ? "+" : "-"}INR ${Math.abs(pnl).toFixed(2)}` : "--",
+        "P&L %": hasPrice ? `${pnl >= 0 ? "+" : ""}${pnlPercent.toFixed(2)}%` : "--"
+      };
+    });
+    exportToCSV(exportData, csvHeaders, "positions_statement.csv");
+  };
+
+  const handleExportPDF = () => {
+    const pdfColumns = ["Symbol", "Company", "Quantity", "Average Price", "Invested Amount", "Current Price", "Unrealized P&L", "P&L %"];
+    const exportRows = positions.map(p => {
+      const hasPrice = Number.isFinite(p.currentPrice);
+      const marketValue = hasPrice ? p.currentPrice * p.quantity : null;
+      const pnl = hasPrice ? marketValue - p.investedAmount : null;
+      const pnlPercent = hasPrice && p.investedAmount > 0 ? (pnl / p.investedAmount) * 100 : null;
+
+      return {
+        "Symbol": p.symbol,
+        "Company": p.companyName,
+        "Quantity": p.quantity,
+        "Average Price": `INR ${p.averagePrice.toFixed(2)}`,
+        "Invested Amount": `INR ${p.investedAmount.toFixed(2)}`,
+        "Current Price": hasPrice ? `INR ${p.currentPrice.toFixed(2)}` : "--",
+        "Unrealized P&L": hasPrice ? `${pnl >= 0 ? "+" : "-"}INR ${Math.abs(pnl).toFixed(2)}` : "--",
+        "P&L %": hasPrice ? `${pnl >= 0 ? "+" : ""}${pnlPercent.toFixed(2)}%` : "--"
+      };
+    });
+    exportToPDF("Positions & Holdings Statement", pdfColumns, exportRows, "positions_statement.pdf");
+  };
+
   return (
     <DashboardLayout>
       <OrderModal
@@ -138,11 +186,36 @@ const Positions = () => {
       />
 
       <div className="max-w-[1300px]">
-        <div className="mb-5">
-          <h1 className="text-2xl font-semibold text-[#f5f7fa]">Positions</h1>
-          <p className="mt-1 text-sm text-[#8a93a3]">
-            Track current holdings with live quote-based unrealized P&amp;L.
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-5 gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold text-[#f5f7fa]">Positions</h1>
+            <p className="mt-1 text-sm text-[#8a93a3]">
+              Track current holdings with live quote-based unrealized P&amp;L.
+            </p>
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleExportCSV}
+              disabled={positions.length === 0}
+              className="flex items-center gap-1.5 rounded-lg border border-[#1e2530] bg-[#0d1117] px-3.5 py-1.5 text-xs font-semibold text-[#8a93a3] transition hover:bg-[#1e2530] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Export Current Positions to CSV"
+            >
+              <FileSpreadsheet size={12} />
+              CSV
+            </button>
+            <button
+              type="button"
+              onClick={handleExportPDF}
+              disabled={positions.length === 0}
+              className="flex items-center gap-1.5 rounded-lg border border-[#1e2530] bg-[#0d1117] px-3.5 py-1.5 text-xs font-semibold text-[#8a93a3] transition hover:bg-[#1e2530] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Print/Save Current Positions to PDF"
+            >
+              <Download size={12} />
+              PDF
+            </button>
+          </div>
         </div>
 
         <div className="rounded-lg border border-[#1e2530] bg-[#11161f]">

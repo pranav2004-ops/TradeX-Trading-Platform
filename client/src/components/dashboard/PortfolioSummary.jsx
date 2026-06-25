@@ -1,4 +1,4 @@
-import { TrendingUp, Wallet, Briefcase, IndianRupee } from "lucide-react";
+import { TrendingUp, Wallet, Briefcase, IndianRupee, ArrowUpRight, Percent } from "lucide-react";
 
 const fmt = (n) =>
   n.toLocaleString("en-IN", {
@@ -34,22 +34,34 @@ const PortfolioSummary = ({
   error,
   liveHoldingsValue = 0,
   unrealizedPnL = 0,
+  dayPnL = 0,
   pnlAvailable = false,
   quotesLoading = false,
 }) => {
   const cash = summary?.cash || 0;
   const investedAmount = summary?.investedAmount || 0;
+  const realizedPnL = summary?.realizedPnL || 0;
   const holdingsCount = summary?.holdingsCount || 0;
-  const totalPositions = summary?.totalPositions || 0;
 
   const portfolioValue = cash + liveHoldingsValue;
+  const totalPnL = realizedPnL + unrealizedPnL;
+  const totalReturnPct = investedAmount > 0 ? (totalPnL / investedAmount) * 100 : 0;
+
+  const dayPnLSign = dayPnL >= 0 ? "+" : "-";
+  const dayPnLTrend = dayPnL >= 0 ? "up" : "down";
+
+  const realizedPnLSign = realizedPnL >= 0 ? "+" : "-";
+  const realizedPnLTrend = realizedPnL >= 0 ? "up" : "down";
+
+  const totalPnLSign = totalPnL >= 0 ? "+" : "-";
+  const totalPnLTrend = totalPnL >= 0 ? "up" : "down";
 
   const pnlSign = unrealizedPnL >= 0 ? "+" : "-";
   const pnlTrend = pnlAvailable ? (unrealizedPnL >= 0 ? "up" : "down") : "neutral";
   const portfolioSub = error
     ? error
     : pnlAvailable
-    ? `${pnlSign}\u20b9${fmt(Math.abs(unrealizedPnL))} unrealized P&L`
+    ? `${pnlSign}₹${fmt(Math.abs(unrealizedPnL))} unrealized`
     : quotesLoading
     ? "Fetching live prices..."
     : `${holdingsCount} holdings`;
@@ -57,36 +69,50 @@ const PortfolioSummary = ({
   const stats = [
     {
       label: "Portfolio Value",
-      value: loading ? "--" : `\u20b9${fmt(portfolioValue)}`,
+      value: loading ? "--" : `₹${fmt(portfolioValue)}`,
       sub: portfolioSub,
       trend: pnlTrend,
       icon: Briefcase,
     },
     {
+      label: "Day P&L",
+      value: loading ? "--" : `₹${fmt(dayPnL)}`,
+      sub: `${dayPnLSign}₹${fmt(Math.abs(dayPnL))} today`,
+      trend: dayPnLTrend,
+      icon: ArrowUpRight,
+    },
+    {
+      label: "Realized P&L",
+      value: loading ? "--" : `₹${fmt(realizedPnL)}`,
+      sub: `${realizedPnLSign}₹${fmt(Math.abs(realizedPnL))} booked`,
+      trend: realizedPnLTrend,
+      icon: Percent,
+    },
+    {
+      label: "Total Net Returns",
+      value: loading ? "--" : `₹${fmt(totalPnL)}`,
+      sub: `${totalPnLSign}${totalReturnPct.toFixed(2)}% overall`,
+      trend: totalPnLTrend,
+      icon: TrendingUp,
+    },
+    {
       label: "Available Cash",
-      value: loading ? "--" : `\u20b9${fmt(cash)}`,
+      value: loading ? "--" : `₹${fmt(cash)}`,
       sub: "Cash balance",
       trend: "neutral",
       icon: Wallet,
     },
     {
       label: "Invested Amount",
-      value: loading ? "--" : `\u20b9${fmt(investedAmount)}`,
+      value: loading ? "--" : `₹${fmt(investedAmount)}`,
       sub: "Book value",
       trend: "neutral",
       icon: IndianRupee,
     },
-    {
-      label: "Positions",
-      value: loading ? "--" : totalPositions.toLocaleString("en-IN"),
-      sub: `${holdingsCount} active stocks`,
-      trend: "neutral",
-      icon: TrendingUp,
-    },
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
       {stats.map((s) => (
         <StatCard key={s.label} {...s} />
       ))}

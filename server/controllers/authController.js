@@ -42,6 +42,7 @@ const registerUser = asyncHandler(async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
+      profilePhoto: user.profilePhoto || "",
     },
   });
 });
@@ -84,6 +85,7 @@ const loginUser = asyncHandler(async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
+      profilePhoto: user.profilePhoto || "",
     },
   });
 });
@@ -144,4 +146,39 @@ const changePassword = asyncHandler(async (req, res) => {
   });
 });
 
-export { registerUser, loginUser, getProfile, changePassword };
+// @desc    Update user profile
+// @route   PUT /api/auth/profile
+// @access  Private
+const updateProfile = asyncHandler(async (req, res) => {
+  const { name, profilePhoto } = req.body;
+
+  const user = await User.findById(req.user.id);
+  if (!user) {
+    const err = new Error("User not found.");
+    err.statusCode = 404;
+    throw err;
+  }
+
+  if (name !== undefined) {
+    user.name = String(name).trim();
+  }
+
+  if (profilePhoto !== undefined) {
+    user.profilePhoto = profilePhoto;
+  }
+
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+    message: "Profile updated successfully.",
+    user: {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      profilePhoto: user.profilePhoto || "",
+    },
+  });
+});
+
+export { registerUser, loginUser, getProfile, changePassword, updateProfile };

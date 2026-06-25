@@ -59,6 +59,25 @@ export const sellStock = (tradeData) => submitTrade("sell", tradeData);
 
 export const placeLimitOrder = (tradeData) => submitTrade("limit", tradeData);
 
+export const placeOrder = (tradeData) => submitTrade("order", tradeData);
+
+export const modifyOrder = async (orderId, orderData) => {
+  const response = await fetch(`${BASE_URL}/${orderId}/modify`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(orderData),
+  });
+
+  const result = await response.json();
+
+  if (!response.ok || !result.success) {
+    handle401(response.status);
+    throw new Error(result.message || "Failed to modify order");
+  }
+
+  return result.data;
+};
+
 export const cancelOrder = async (orderId) => {
   const response = await fetch(`${BASE_URL}/${orderId}/cancel`, {
     method: "POST",

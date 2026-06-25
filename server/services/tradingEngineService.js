@@ -4,6 +4,7 @@ import Trade from "../models/TradeModel.js";
 import Holding from "../models/HoldingModel.js";
 import PortfolioSnapshot from "../models/PortfolioSnapshot.js";
 import { getStockQuote } from "./stockService.js";
+import { sendSimulatedEmail } from "../utils/emailService.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Utilities
@@ -170,7 +171,7 @@ export const applyBuyToHoldings = async (session, input, executedPrice) => {
 /**
  * Decrement a holding after a SELL fill.
  * Called inside an active Mongoose session/transaction.
- * Returns the remaining holding (or null if fully sold).
+ * Returns the remaining holding (or null if fully sold) along with the originalAveragePrice.
  */
 export const applySellToHoldings = async (session, input) => {
   const holding = await Holding.findOne({
@@ -183,18 +184,19 @@ export const applySellToHoldings = async (session, input) => {
     throw new Error("Insufficient quantity to sell");
   }
 
+  const originalAveragePrice = holding.averagePrice;
   const remainingQuantity = holding.quantity - input.quantity;
 
   if (remainingQuantity === 0) {
     await Holding.deleteOne({ _id: holding._id }).session(session);
-    return null;
+    return { remainingHolding: null, originalAveragePrice };
   }
 
   holding.quantity = remainingQuantity;
   holding.investedAmount = round2(holding.averagePrice * remainingQuantity);
   await holding.save({ session });
 
-  return holding;
+  return { remainingHolding: holding, originalAveragePrice };
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -263,6 +265,29 @@ const buyTrade = async (payload) => {
       totalAmount,
     };
   });
+
+  // Send simulated email asynchronously outside transaction
+  User.findById(payload.user).select("email").then((u) => {
+    if (u && u.email) {
+      sendSimulatedEmail(
+        u.email,
+        `Order Filled: BUY ${res.trade.symbol}`,
+        `Your BUY Market Order was executed!`,
+        {
+          "Symbol": res.trade.symbol,
+          "Company": res.trade.companyName,
+          "Action": "BUY",
+          "Quantity": res.trade.quantity,
+          "Execution Price": `₹${res.trade.executedPrice.toFixed(2)}`,
+          "Total Cost": `₹${res.trade.totalAmount.toFixed(2)}`,
+          "Status": "EXECUTED",
+          "Executed At": new Date(res.trade.executedAt).toLocaleString("en-IN"),
+        }
+      ).catch((err) => console.error("Email simulation failed:", err));
+    }
+  });
+
+  return res;
 };
 
 /**
@@ -292,7 +317,8 @@ const sellTrade = async (payload) => {
     const user = await User.findById(input.user).session(session);
     if (!user) throw new Error("User not found");
 
-    const holding = await applySellToHoldings(session, input);
+    const { remainingHolding, originalAveragePrice } = await applySellToHoldings(session, input);
+    const realizedPnL = Math.round(input.quantity * (authoritativePrice - originalAveragePrice) * 100) / 100;
 
     const trade = await Trade.create(
       [
@@ -307,8 +333,9 @@ const sellTrade = async (payload) => {
           price: authoritativePrice,
           executedPrice: authoritativePrice,
           totalAmount,
+          realizedPnL,
           executedAt: now,
-          statusHistory: [{ status: "EXECUTED", timestamp: now, note: "Market order filled immediately" }],
+          statusHistory: [{ status: "EXECUTED", timestamp: now, note: `Market order filled immediately. Realised P&L: ₹${realizedPnL.toFixed(2)}.` }],
         },
       ],
       { session }
@@ -320,11 +347,35 @@ const sellTrade = async (payload) => {
 
     return {
       trade: trade[0],
-      holding,
+      holding: remainingHolding,
       cash: user.cash,
       totalAmount,
     };
   });
+
+  // Send simulated email asynchronously outside transaction
+  User.findById(payload.user).select("email").then((u) => {
+    if (u && u.email) {
+      sendSimulatedEmail(
+        u.email,
+        `Order Filled: SELL ${res.trade.symbol}`,
+        `Your SELL Market Order was executed!`,
+        {
+          "Symbol": res.trade.symbol,
+          "Company": res.trade.companyName,
+          "Action": "SELL",
+          "Quantity": res.trade.quantity,
+          "Execution Price": `₹${res.trade.executedPrice.toFixed(2)}`,
+          "Total Credit": `₹${res.trade.totalAmount.toFixed(2)}`,
+          "Realised P&L": `₹${res.trade.realizedPnL.toFixed(2)}`,
+          "Status": "EXECUTED",
+          "Executed At": new Date(res.trade.executedAt).toLocaleString("en-IN"),
+        }
+      ).catch((err) => console.error("Email simulation failed:", err));
+    }
+  });
+
+  return res;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

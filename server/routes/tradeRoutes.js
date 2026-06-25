@@ -3,6 +3,8 @@ import {
   buyStock,
   sellStock,
   placeLimitOrder,
+  placePendingOrder,
+  modifyOrder,
   cancelOrder,
   getPendingOrders,
   getTradeHistory,
@@ -18,6 +20,10 @@ router.post("/buy", protect, buyStock);
 router.post("/sell", protect, sellStock);
 
 router.post("/limit", protect, placeLimitOrder);
+
+router.post("/order", protect, placePendingOrder);
+
+router.put("/:id/modify", protect, modifyOrder);
 
 router.post("/:id/cancel", protect, cancelOrder);
 

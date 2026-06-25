@@ -6,6 +6,7 @@ import {
   getBatchQuotesController,
   getBatchSectorsController,
   getSparklineController,
+  getStockCandlesController,
 } from "../controllers/stockController.js";
 
 const router = express.Router();
@@ -21,5 +22,7 @@ router.get("/sectors", getBatchSectorsController);
 router.get("/sparkline/:symbol", getSparklineController);
 
 router.get("/quote/:symbol", getQuoteController);
+
+router.get("/candles/:symbol", getStockCandlesController);
 
 export default router;

@@ -5,6 +5,7 @@ import {
   useEffect,
   useState,
 } from "react";
+import { showPushNotification, requestNotificationPermission } from "../utils/notificationUtils";
 
 /* ─────────────────────────────────────────────
    Constants
@@ -40,6 +41,11 @@ const NotificationContext = createContext(null);
 export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState(loadFromStorage);
 
+  // Request browser permission on startup
+  useEffect(() => {
+    requestNotificationPermission();
+  }, []);
+
   // Persist every state change to localStorage
   useEffect(() => {
     saveToStorage(notifications);
@@ -60,6 +66,9 @@ export const NotificationProvider = ({ children }) => {
     };
 
     setNotifications((prev) => [entry, ...prev].slice(0, MAX_STORED));
+    
+    // Also trigger native desktop push alert
+    showPushNotification(title, message ?? "");
   }, []);
 
   /** Mark a single notification as read by id */

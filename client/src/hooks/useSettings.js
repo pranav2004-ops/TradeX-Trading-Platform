@@ -12,6 +12,11 @@ const DEFAULT_SETTINGS = {
   // Appearance
   theme: "dark", // "dark" | "light" (light is future)
   compactLayout: false,
+
+  // Chart Preferences
+  defaultTimeframe: "1M",
+  defaultOverlayIndicator: "NONE",
+  defaultOscillator: "NONE",
 };
 
 const readFromStorage = () => {

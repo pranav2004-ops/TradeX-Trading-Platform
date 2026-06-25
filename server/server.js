@@ -22,6 +22,10 @@ import {
   startOrderProcessor,
   stopOrderProcessor,
 } from "./services/limitOrderService.js";
+import {
+  startWebSocketServer,
+  stopWebSocketServer as stopWSServer,
+} from "./services/socketService.js";
 
 // ---------------------------------------------------------------------------
 // Process-level safety — must be registered before anything else so that
@@ -187,9 +191,11 @@ const startServer = async () => {
     });
 
     startOrderProcessor();
+    startWebSocketServer(server);
 
     const shutdown = () => {
       stopOrderProcessor();
+      stopWSServer();
       server.close(() => process.exit(0));
     };
 
