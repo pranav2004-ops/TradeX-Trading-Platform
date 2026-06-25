@@ -31,6 +31,9 @@ Built with a responsive mobile navigation drawer, real-time quote context subscr
 ### Candlestick Chart
 ![Candlestick Chart](docs/screenshots/candlestic_chart.png)
 
+### Assistant Bot
+![Assistant Bot](docs/screenshots/assistant_bot.png)
+
 ### Watchlist
 ![Watchlist](docs/screenshots/watchlist.png)
 
