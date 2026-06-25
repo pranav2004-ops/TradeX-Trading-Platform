@@ -40,7 +40,7 @@ export const QuoteProvider = ({ children }) => {
     activeSymbolsRef.current = symbols;
   }, [symbols]);
 
-  // Connect WebSocket
+    // Connect WebSocket
   useEffect(() => {
     const wsScheme = window.location.protocol === "https:" ? "wss:" : "ws:";
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
@@ -48,7 +48,10 @@ export const QuoteProvider = ({ children }) => {
     const wsHost = API_BASE_URL
       ? API_BASE_URL.replace(/^http/, "ws")
       : `${wsScheme}//${window.location.host}`;
-    const WS_URL = `${wsHost}/ws`;
+    
+    // Strip trailing slash if present
+    const cleanHost = wsHost.endsWith("/") ? wsHost.slice(0, -1) : wsHost;
+    const WS_URL = `${cleanHost}/ws`;
 
     let socket = null;
     let connectTimeout = null;

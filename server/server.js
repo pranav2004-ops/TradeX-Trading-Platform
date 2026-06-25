@@ -79,15 +79,26 @@ app.use(helmet());
 // ---------------------------------------------------------------------------
 // CORS
 // ---------------------------------------------------------------------------
-const allowedOrigins = process.env.CLIENT_ORIGIN
-  ? [process.env.CLIENT_ORIGIN]
-  : [
+const getCorsOrigins = () => {
+  if (!process.env.CLIENT_ORIGIN) {
+    return [
       "http://localhost:5000",
       "http://localhost:5173",
       /\.replit\.dev$/,
       /\.repl\.co$/,
       /\.replit\.app$/,
     ];
+  }
+  return process.env.CLIENT_ORIGIN.split(",").map((origin) => {
+    let clean = origin.trim();
+    if (clean.endsWith("/")) {
+      clean = clean.slice(0, -1);
+    }
+    return clean;
+  });
+};
+
+const allowedOrigins = getCorsOrigins();
 
 const corsOptions = {
   origin: allowedOrigins,

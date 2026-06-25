@@ -65,7 +65,8 @@ export default function StockChart({ symbol }) {
       try {
         setLoading(true);
         setError("");
-        const res = await fetch(`/api/stocks/candles/${symbol}?timeframe=${timeframe}`);
+        const apiBase = import.meta.env.VITE_API_BASE_URL || "";
+        const res = await fetch(`${apiBase}/api/stocks/candles/${symbol}?timeframe=${timeframe}`);
         const result = await res.json();
 
         if (!res.ok || !result.success) {
