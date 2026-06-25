@@ -2,7 +2,7 @@
 
 ![React](https://img.shields.io/badge/React-Vite-blue) ![Node.js](https://img.shields.io/badge/Node.js-Express-green) ![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-brightgreen) ![License](https://img.shields.io/badge/License-MIT-yellow)
 
-TradeX is a full-stack paper trading web application inspired by the design philosophy and trading workflows of **Zerodha Kite**. The platform allows users to practice real-time stock trading using real market data with a virtual cash balance of **₹1,00,000**, offering zero financial risk.
+TradeX is a full-stack paper trading web application.The platform allows users to practice real-time stock trading using real market data with a virtual cash balance of **₹1,00,000**, offering zero financial risk.
 
 Built with a responsive mobile navigation drawer, real-time quote context subscriptions, price alert triggers, and server-side limit order execution schedules.
 
@@ -137,7 +137,7 @@ FINNHUB_API_KEY=your_finnhub_api_token
 - **Profile Editing & Avatars**: Allow users to update their profiles and upload profile avatars.
 - **WebSocket Live Market Updates**: Transition from REST polling to a streaming connection for instant quote feeds.
 - **Advanced Charting**: Implement intraday interactive candlestick charting libraries.
-- **Password Reset Flow**: Implement automated password recovery workflows.
+
 
 ---
 
@@ -153,3 +153,4 @@ FINNHUB_API_KEY=your_finnhub_api_token
 ## 📄 License
 
 This project is licensed under the **MIT License**. Refer to the [LICENSE](LICENSE) file for details.
+

@@ -53,9 +53,22 @@ function Login() {
       } else {
         setError(result.message || "Login failed. Please try again.");
       }
-    } catch {
-      setError("Unable to connect to the server. Please try again.");
-    } finally {
+    }  catch (err) {
+  const message =
+    err?.response?.data?.message ||
+    err?.message ||
+    "Unable to connect to the server. Please try again.";
+
+  if (
+    message.toLowerCase().includes("user not found") ||
+    message.toLowerCase().includes("account not found")
+  ) {
+    setError("Account not found. Please register first.");
+  } else {
+    setError(message);
+  }
+}
+     finally {
       setLoading(false);
     }
   };
