@@ -59,14 +59,7 @@ function Login() {
     err?.message ||
     "Unable to connect to the server. Please try again.";
 
-  if (
-    message.toLowerCase().includes("user not found") ||
-    message.toLowerCase().includes("account not found")
-  ) {
-    setError("Account not found. Please register first.");
-  } else {
-    setError(message);
-  }
+  setError(message);
 }
      finally {
       setLoading(false);

@@ -57,18 +57,18 @@ const loginUser = asyncHandler(async (req, res) => {
 
   // Use a single "Invalid credentials" message to avoid user enumeration.
   if (!user) {
-    const err = new Error("Invalid credentials");
-    err.statusCode = 401;
-    throw err;
-  }
+  const err = new Error("Please register first.");
+  err.statusCode = 404;
+  throw err;
+}
 
   const isMatch = await bcrypt.compare(password, user.password);
-
-  if (!isMatch) {
-    const err = new Error("Invalid credentials");
-    err.statusCode = 401;
-    throw err;
-  }
+  
+ if (!isMatch) {
+  const err = new Error("Incorrect password.");
+  err.statusCode = 401;
+  throw err;
+}
 
   const token = jwt.sign(
     { id: user._id },
