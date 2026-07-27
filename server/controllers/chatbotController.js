@@ -2,7 +2,7 @@ import { GoogleGenAI } from '@google/genai';
 
 // Initialize the SDK. It automatically picks up GEMINI_API_KEY from environment if not passed explicitly,
 // but passing it explicitly is also fine. We'll rely on process.env.GEMINI_API_KEY.
-const ai = new GoogleGenAI();
+const ai = new GoogleGenAI({});
 
 export const handleChat = async (req, res) => {
   try {
