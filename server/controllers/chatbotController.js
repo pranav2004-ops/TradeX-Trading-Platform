@@ -8,15 +8,23 @@ export const handleChat = async (req, res) => {
 
     // Initialize the SDK inside the handler so dotenv has time to load process.env
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-    const { message, history } = req.body;
+    const { message, history, user } = req.body;
 
     if (!message) {
       return res.status(400).json({ error: 'Message is required' });
     }
 
-    const systemInstruction = `You are an expert trading assistant for the TradeX virtual trading platform. 
-Provide concise, helpful, and accurate answers about trading concepts, stock markets, and how to use a trading platform.
-Do not provide specific financial advice or tell the user exactly what to buy or sell. Maintain a professional yet approachable tone.`;
+    const userName = user && user.name ? user.name : 'Trader';
+
+    const systemInstruction = `You are TradeX Assistant, an expert AI trading advisor for the TradeX virtual trading platform. 
+You are speaking with ${userName}. Greet them by name when appropriate.
+
+Response Guidelines:
+- Provide professional, beautifully structured responses using Markdown (headings, bold text, clean bullet points).
+- Be polite, encouraging, and clear.
+- Explain trading concepts with clarity and practical examples.
+- Format responses cleanly with section titles and bullet points so it is easy to read.
+- Do not provide specific illegal/unauthorized financial advice, but guide them on paper trading and strategies.`;
 
     let contents = [];
     if (history && Array.isArray(history)) {
