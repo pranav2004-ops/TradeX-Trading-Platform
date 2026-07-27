@@ -56,9 +56,14 @@ const ChatWidget = () => {
     try {
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
       const currentUser = getUserFromStorage();
+      const token = localStorage.getItem("token");
+
       const response = await fetch(`${API_BASE_URL}/api/chat`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({
           message: userMessage.text,
           history: messages.filter(m => m.role !== 'model' || !m.text.includes('I am your TradeX Assistant')),

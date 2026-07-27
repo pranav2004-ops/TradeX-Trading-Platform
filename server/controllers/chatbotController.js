@@ -1,4 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
+import { getSummaryByUser, getHoldingsByUser } from '../services/tradingEngineService.js';
 
 export const handleChat = async (req, res) => {
   try {
@@ -6,7 +7,6 @@ export const handleChat = async (req, res) => {
       return res.status(500).json({ error: 'GEMINI_API_KEY is not configured on the server environment variables.' });
     }
 
-    // Initialize the SDK inside the handler so dotenv has time to load process.env
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const { message, history, user } = req.body;
 
@@ -16,8 +16,26 @@ export const handleChat = async (req, res) => {
 
     const userName = user && user.name ? user.name : 'Trader';
 
+    // Fetch user portfolio data if authenticated
+    let portfolioContext = "";
+    if (req.user && req.user.id) {
+      try {
+        const summary = await getSummaryByUser(req.user.id);
+        const holdings = await getHoldingsByUser(req.user.id);
+        
+        portfolioContext = `\n\nUSER PORTFOLIO DATA:
+- Total Funds: $${summary.totalFunds?.toFixed(2)}
+- Buying Power: $${summary.buyingPower?.toFixed(2)}
+- Current Holdings: ${holdings.length === 0 ? 'No open positions.' : holdings.map(h => `${h.quantity} shares of ${h.symbol}`).join(', ')}
+You now have access to the user's real-time portfolio data. You MUST act as their personal virtual trading advisor. When asked, analyze their portfolio, suggest improvements, and tailor your advice to their specific holdings.`;
+      } catch (err) {
+        console.error("Error fetching portfolio context:", err);
+      }
+    }
+
     const systemInstruction = `You are TradeX Assistant, a highly professional and expert AI trading advisor for the TradeX platform. 
 You are speaking with ${userName}.
+${portfolioContext}
 
 Guidelines:
 - Keep responses EXTREMELY concise and direct (ChatGPT style).
