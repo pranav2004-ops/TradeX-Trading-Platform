@@ -11,6 +11,7 @@ import tradeRoutes from "./routes/tradeRoutes.js";
 import watchlistRoutes from "./routes/watchlistRoutes.js";
 import analyticsRoutes from "./routes/analyticsRoutes.js";
 import alertRoutes from "./routes/alertRoutes.js";
+import chatbotRoutes from "./routes/chatbotRoutes.js";
 import errorHandler from "./middleware/errorHandler.js";
 import {
   authLimiter,
@@ -156,6 +157,9 @@ app.use("/api/analytics", analyticsRoutes);
 
 // Alerts — covered by generalLimiter
 app.use("/api/alerts", alertRoutes);
+
+// Chatbot — covered by generalLimiter
+app.use("/api/chat", chatbotRoutes);
 
 // ---------------------------------------------------------------------------
 // Static files + SPA catch-all (production only)

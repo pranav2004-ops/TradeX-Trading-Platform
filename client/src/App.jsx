@@ -18,6 +18,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { QuoteProvider } from "./context/QuoteContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import { AlertProvider } from "./context/AlertContext";
+import ChatWidget from "./components/chatbot/ChatWidget";
 
 function App() {
   return (
@@ -118,6 +119,7 @@ function App() {
                 }
               />
             </Routes>
+            <ChatWidget />
           </AlertProvider>
         </QuoteProvider>
       </NotificationProvider>
