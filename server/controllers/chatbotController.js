@@ -1,11 +1,9 @@
 import { GoogleGenAI } from '@google/genai';
 
-// Initialize the SDK. It automatically picks up GEMINI_API_KEY from environment if not passed explicitly,
-// but passing it explicitly is also fine. We'll rely on process.env.GEMINI_API_KEY.
-const ai = new GoogleGenAI({});
-
 export const handleChat = async (req, res) => {
   try {
+    // Initialize the SDK inside the handler so dotenv has time to load process.env
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const { message, history } = req.body;
 
     if (!message) {
