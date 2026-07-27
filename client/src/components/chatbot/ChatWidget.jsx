@@ -66,12 +66,26 @@ const ChatWidget = () => {
         }),
       });
 
-      const data = await response.json();
+      if (!response.ok) {
+        setMessages((prev) => [...prev, { role: 'model', text: 'Sorry, I encountered an error. Please try again later.' }]);
+        return;
+      }
+
+      setMessages((prev) => [...prev, { role: 'model', text: '' }]);
       
-      if (response.ok) {
-        setMessages((prev) => [...prev, { role: 'model', text: data.text }]);
-      } else {
-        setMessages((prev) => [...prev, { role: 'model', text: data.error || 'Sorry, I encountered an error. Please try again later.' }]);
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value, { stream: true });
+        setMessages((prev) => {
+          const newMessages = [...prev];
+          newMessages[newMessages.length - 1].text += chunk;
+          return newMessages;
+        });
       }
     } catch (error) {
       console.error('Chat error:', error);

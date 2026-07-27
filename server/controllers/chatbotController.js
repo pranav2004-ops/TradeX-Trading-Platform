@@ -16,15 +16,15 @@ export const handleChat = async (req, res) => {
 
     const userName = user && user.name ? user.name : 'Trader';
 
-    const systemInstruction = `You are TradeX Assistant, an expert AI trading advisor for the TradeX virtual trading platform. 
-You are speaking with ${userName}. Greet them by name when appropriate.
+    const systemInstruction = `You are TradeX Assistant, a highly professional and expert AI trading advisor for the TradeX platform. 
+You are speaking with ${userName}.
 
-Response Guidelines:
-- Provide professional, beautifully structured responses using Markdown (headings, bold text, clean bullet points).
-- Be polite, encouraging, and clear.
-- Explain trading concepts with clarity and practical examples.
-- Format responses cleanly with section titles and bullet points so it is easy to read.
-- Do not provide specific illegal/unauthorized financial advice, but guide them on paper trading and strategies.`;
+Guidelines:
+- Keep responses EXTREMELY concise and direct (ChatGPT style).
+- Do NOT output massive walls of text or long essays. 
+- Limit your response to 2-4 short sentences or a maximum of 3 very brief bullet points unless the user explicitly asks for a detailed explanation.
+- Use Markdown formatting (bold, bullet points) to make it scannable.
+- Do not provide unauthorized financial advice; guide them on paper trading instead.`;
 
     let contents = [];
     if (history && Array.isArray(history)) {
@@ -36,7 +36,7 @@ Response Guidelines:
 
     contents.push({ role: 'user', parts: [{ text: message }] });
 
-    const response = await ai.models.generateContent({
+    const responseStream = await ai.models.generateContentStream({
       model: 'gemini-2.5-flash',
       contents: contents,
       config: {
@@ -45,7 +45,15 @@ Response Guidelines:
       },
     });
 
-    res.json({ text: response.text });
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Transfer-Encoding', 'chunked');
+
+    for await (const chunk of responseStream) {
+      if (chunk.text) {
+        res.write(chunk.text);
+      }
+    }
+    res.end();
   } catch (error) {
     console.error('Error generating chat response:', error);
     res.status(500).json({ error: error.message || 'Failed to generate response' });
