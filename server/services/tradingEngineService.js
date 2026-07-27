@@ -412,6 +412,16 @@ const getSummaryByUser = async (userId) => {
   };
 };
 
+const getUserMetrics = async (userId) => {
+  const trades = await Trade.find({ user: userId, action: "SELL", status: "EXECUTED" });
+  if (trades.length === 0) return { winRate: 0, totalClosedTrades: 0 };
+  
+  const winningTrades = trades.filter((t) => t.realizedPnL > 0).length;
+  const winRate = (winningTrades / trades.length) * 100;
+  
+  return { winRate, totalClosedTrades: trades.length };
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Exports
 // ─────────────────────────────────────────────────────────────────────────────
@@ -421,6 +431,7 @@ export {
   sellTrade,
   getHoldingsByUser,
   getSummaryByUser,
+  getUserMetrics,
   // Internal helpers also exported for limitOrderService
   fetchAuthoritativePrice,
   normalizeOrderInput,

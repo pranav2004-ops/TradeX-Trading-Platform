@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Bot, User, Copy, Check } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-
+import remarkGfm from 'remark-gfm';
+import remarkBreaks from 'remark-breaks';
 const getUserFromStorage = () => {
   try {
     const raw = localStorage.getItem("user");
@@ -147,8 +148,8 @@ const ChatWidget = () => {
                   }`}
                 >
                   {msg.role === 'model' ? (
-                    <div className="prose prose-invert prose-sm max-w-none text-slate-200 prose-p:my-1 prose-ul:my-1 prose-li:my-0.5 prose-strong:text-blue-300">
-                      <ReactMarkdown>{msg.text}</ReactMarkdown>
+                    <div className="prose prose-invert prose-sm max-w-none text-slate-200 prose-p:leading-relaxed prose-p:my-2 prose-ul:my-2 prose-li:my-1 prose-strong:text-blue-300">
+                      <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{msg.text}</ReactMarkdown>
                     </div>
                   ) : (
                     <span>{msg.text}</span>

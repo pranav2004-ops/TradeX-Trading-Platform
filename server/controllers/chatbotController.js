@@ -1,5 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
-import { getSummaryByUser, getHoldingsByUser } from '../services/tradingEngineService.js';
+import { getSummaryByUser, getHoldingsByUser, getUserMetrics } from '../services/tradingEngineService.js';
+import { getBatchStockQuotes } from '../services/stockService.js';
 
 export const handleChat = async (req, res) => {
   try {
@@ -22,12 +23,31 @@ export const handleChat = async (req, res) => {
       try {
         const summary = await getSummaryByUser(req.user.id);
         const holdings = await getHoldingsByUser(req.user.id);
+        const metrics = await getUserMetrics(req.user.id);
         
+        const symbols = holdings.map(h => h.symbol);
+        const quotes = await getBatchStockQuotes(symbols);
+        const quotesMap = quotes.reduce((acc, q) => { acc[q.symbol] = q; return acc; }, {});
+
+        let holdingsString = 'No open positions.';
+        if (holdings.length > 0) {
+          holdingsString = holdings.map(h => {
+            const currentPrice = quotesMap[h.symbol]?.currentPrice || h.averagePrice;
+            const pnl = (currentPrice - h.averagePrice) * h.quantity;
+            const pnlPercent = h.averagePrice > 0 ? ((currentPrice - h.averagePrice) / h.averagePrice) * 100 : 0;
+            return `${h.quantity} shares of ${h.symbol} (Avg Price: $${h.averagePrice.toFixed(2)}, Current Price: $${currentPrice.toFixed(2)}, PnL: $${pnl.toFixed(2)} / ${pnlPercent.toFixed(2)}%)`;
+          }).join('\n  ');
+        }
+        
+        const totalValue = summary.cash + summary.investedAmount;
+
         portfolioContext = `\n\nUSER PORTFOLIO DATA:
-- Total Funds: $${summary.totalFunds?.toFixed(2)}
-- Buying Power: $${summary.buyingPower?.toFixed(2)}
-- Current Holdings: ${holdings.length === 0 ? 'No open positions.' : holdings.map(h => `${h.quantity} shares of ${h.symbol}`).join(', ')}
-You now have access to the user's real-time portfolio data. You MUST act as their personal virtual trading advisor. When asked, analyze their portfolio, suggest improvements, and tailor your advice to their specific holdings.`;
+- Total Portfolio Value: $${totalValue.toFixed(2)}
+- Buying Power (Cash): $${summary.cash.toFixed(2)}
+- Historical Win Rate: ${metrics.totalClosedTrades > 0 ? metrics.winRate.toFixed(1) + '%' : 'N/A (No closed trades yet)'}
+- Current Holdings:
+  ${holdingsString}
+You now have access to the user's real-time portfolio data, unrealized PnL, and historical win rate. You MUST act as their personal virtual trading advisor. When asked, analyze their portfolio, suggest improvements, and tailor your advice to their specific holdings.`;
       } catch (err) {
         console.error("Error fetching portfolio context:", err);
       }
@@ -37,11 +57,12 @@ You now have access to the user's real-time portfolio data. You MUST act as thei
 You are speaking with ${userName}.
 ${portfolioContext}
 
-Guidelines:
-- Keep responses EXTREMELY concise and direct (ChatGPT style).
-- Do NOT output massive walls of text or long essays. 
-- Limit your response to 2-4 short sentences or a maximum of 3 very brief bullet points unless the user explicitly asks for a detailed explanation.
-- Use Markdown formatting (bold, bullet points) to make it scannable.
+Guidelines for Professional Formatting:
+- Keep responses EXTREMELY concise and direct, adopting a clean, ChatGPT-like style.
+- NEVER output a single massive wall of text. Always break your response into short paragraphs or use bullet points.
+- Use Markdown formatting (bolding, bullet points) to make information highly scannable.
+- Limit your response to a few short sentences, or a maximum of 3-4 very brief bullet points unless the user explicitly asks for a detailed explanation.
+- Suggest 2-3 specific ticker symbols to research based on current market trends when appropriate.
 - Do not provide unauthorized financial advice; guide them on paper trading instead.`;
 
     let contents = [];
