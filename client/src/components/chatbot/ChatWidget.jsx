@@ -42,7 +42,7 @@ const ChatWidget = () => {
       if (response.ok) {
         setMessages((prev) => [...prev, { role: 'model', text: data.text }]);
       } else {
-        setMessages((prev) => [...prev, { role: 'model', text: 'Sorry, I encountered an error. Please try again later.' }]);
+        setMessages((prev) => [...prev, { role: 'model', text: data.error || 'Sorry, I encountered an error. Please try again later.' }]);
       }
     } catch (error) {
       console.error('Chat error:', error);

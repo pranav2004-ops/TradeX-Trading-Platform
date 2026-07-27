@@ -2,6 +2,10 @@ import { GoogleGenAI } from '@google/genai';
 
 export const handleChat = async (req, res) => {
   try {
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(500).json({ error: 'GEMINI_API_KEY is not configured on the server environment variables.' });
+    }
+
     // Initialize the SDK inside the handler so dotenv has time to load process.env
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const { message, history } = req.body;
@@ -36,6 +40,6 @@ Do not provide specific financial advice or tell the user exactly what to buy or
     res.json({ text: response.text });
   } catch (error) {
     console.error('Error generating chat response:', error);
-    res.status(500).json({ error: 'Failed to generate response' });
+    res.status(500).json({ error: error.message || 'Failed to generate response' });
   }
 };
